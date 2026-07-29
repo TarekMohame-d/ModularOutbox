@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ModularOutbox.Core\ModularOutbox.Core.csproj" />
+    <ProjectReference Include="..\ModularOutbox.Abstractions\ModularOutbox.Abstractions.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="ModularOutbox.Core.Tests" />
+    <InternalsVisibleTo Include="ModularOutbox.PostgreSQL.Tests" />
+  </ItemGroup>
+</Project>
