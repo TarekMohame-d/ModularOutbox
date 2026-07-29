@@ -10,8 +10,24 @@
     <Company>ModularOutbox</Company>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryType>git</RepositoryType>
+    <RepositoryUrl>https://github.com/TarekMohame-d/ModularOutbox</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/TarekMohame-d/ModularOutbox</PackageProjectUrl>
+    <PackageTags>outbox;transactional-outbox;postgresql;efcore;dotnet;modular-monolith</PackageTags>
     <Version>1.0.0-preview1</Version>
+
+    <!-- Source Link & Debugging -->
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <IncludeSymbols>true</IncludeSymbols>
+  </PropertyGroup>
+
+  <!-- Prevent test & sample projects from producing NuGet packages -->
+  <PropertyGroup Condition="$(MSBuildProjectFullPath.Contains('/tests/')) Or $(MSBuildProjectFullPath.Contains('/samples/'))">
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="!$(MSBuildProjectFullPath.Contains('/tests/')) And !$(MSBuildProjectFullPath.Contains('/samples/'))">
+    <IsPackable>true</IsPackable>
   </PropertyGroup>
 </Project>
