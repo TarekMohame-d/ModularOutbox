@@ -1,0 +1,25 @@
+# top-most EditorConfig file
+root = true
+
+# Default settings:
+[*]
+max_line_length = 110
+insert_final_newline = true
+indent_style = space
+trim_trailing_whitespace = true
+end_of_line = lf
+indent_size = 2
+tab_width = 2
+
+[**/Migrations/**/*.cs]
+generated_code = true
+
+[*.cs]
+indent_size = 4
+tab_width = 4
+
+# Specify UTF-8 without byte-order mark
+[*.{csproj,locproj,nativeproj,proj,resx,slnx,vbproj}]
+charset = utf-8
+
+

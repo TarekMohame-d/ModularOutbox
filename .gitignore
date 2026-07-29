@@ -1,0 +1,67 @@
+## ===========================================================
+## 🛠️ Build Artifacts & Environment
+## ===========================================================
+# .NET
+[Bb]in/
+[Oo]bj/
+artifacts/
+publish/
+*.user
+*.suo
+*.sln.docstates
+.vs/
+
+# OS Specific
+.DS_Store
+Thumbs.db
+desktop.ini
+
+## ===========================================================
+## ⚙️ VS Code & IDEs
+## ===========================================================
+# Ignore general VS Code history but keep workspace settings
+.vscode/*
+!.vscode/extensions.json
+!.vscode/launch.json
+.idea/
+.zed/
+*.swp
+*.swo
+
+# DO NOT ignore your workspace file
+# !ByteLink.code-workspace (Optional: explicit include if hidden by rules)
+!ByteLink.code-workspace
+
+## ===========================================================
+## 📦 Package Management
+## ===========================================================
+# Central Package Management & NuGet
+*.nupkg
+*.snupkg
+packages/
+!Directory.Packages.props
+
+
+## ===========================================================
+## 🛡️ Secrets & Logs
+## ===========================================================
+.env
+.env.*
+!.env.example
+*.log
+logs/
+
+## ===========================================================
+## 🧪 Testing
+## ===========================================================
+[Tt]est[Rr]esult*/
+*.trx
+*.binlog
+*.coverage
+*.codecoverage
+
+## ===========================================================
+## 🧹 Project Specific Exclusions
+## ===========================================================
+GEMINI.md
+AGENTS.md
