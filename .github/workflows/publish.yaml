@@ -4,6 +4,13 @@ on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Package Version (e.g. 1.0.0 or 1.0.0-preview1)"
+        required: false
+        type: string
+        default: ""
 
 permissions:
   contents: read
@@ -37,7 +44,12 @@ jobs:
         run: dotnet test --no-build --configuration Release
 
       - name: Create NuGet packages
-        run: dotnet pack --no-build --configuration Release -o ./artifacts
+        run: |
+          if [ -n "${{ inputs.version }}" ]; then
+            dotnet pack --no-build --configuration Release /p:PackageVersion=${{ inputs.version }} -o ./artifacts
+          else
+            dotnet pack --no-build --configuration Release -o ./artifacts
+          fi
 
       - name: NuGet Login (OIDC)
         id: login
