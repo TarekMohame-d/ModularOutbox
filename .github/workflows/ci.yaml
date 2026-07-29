@@ -10,7 +10,6 @@ on:
       - main
       - develop
 
-# Cancel redundant in-flight jobs when pushing new commits to an open PR
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
@@ -30,9 +29,11 @@ jobs:
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: |
-            10.0.x
+          dotnet-version: "10.0.x"
           cache: true
+          cache-dependency-path: |
+            **/*.csproj
+            **/Directory.Packages.props
 
       - name: Restore dependencies
         run: dotnet restore
