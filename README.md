@@ -1,90 +1,73 @@
 # ModularOutbox
 
-A lightweight, high-performance **Transactional Outbox & Inbox** library for **ASP.NET Core** and **Entity Framework Core**, designed for **Modular Monoliths** and distributed systems.
+> A lightweight, production-ready **Transactional Outbox + Inbox** implementation for .NET applications using Entity Framework Core and PostgreSQL.
 
-ModularOutbox guarantees that domain changes and integration events are committed atomically using the **Transactional Outbox Pattern**, while providing **idempotent event consumption**, **automatic retries**, **dead-letter support**, and **horizontal scalability** through PostgreSQL row locking.
-
-> **Status:** Preview
-
----
+ModularOutbox helps you reliably publish integration events without the dual-write problem by storing events in the same database transaction as your business data.
 
 ## Features
 
 - ✅ Transactional Outbox Pattern
 - ✅ Inbox Pattern for idempotent consumers
-- ✅ EF Core SaveChanges interceptor integration
-- ✅ PostgreSQL optimized (`FOR UPDATE SKIP LOCKED`)
-- ✅ Automatic background processing
-- ✅ Immediate wake-up after successful transactions
-- ✅ Periodic polling fallback
-- ✅ Horizontal scaling across multiple application instances
-- ✅ Automatic retry with Polly resilience
-- ✅ Dead-letter support
-- ✅ Batch processing
-- ✅ Assembly scanning for event handlers using Scrutor
-- ✅ Minimal setup
-- ✅ .NET 10 support
+- ✅ Entity Framework Core integration
+- ✅ PostgreSQL storage provider
+- ✅ Automatic integration event discovery
+- ✅ Automatic background delivery service
+- ✅ Automatic cleanup service
+- ✅ Polly resilience support
+- ✅ Configurable retry policies
+- ✅ UUIDv7 event identifiers
+- ✅ High-performance batch processing
+- ✅ Safe for multiple application instances
+- ✅ Custom JSON serialization options
 
 ---
 
 # Architecture
 
 ```text
-┌───────────────────────────┐
-│ Application               │
-│                           │
-│ Save Entity               │
-│ Write Integration Event   │
-└────────────┬──────────────┘
-             │
-             ▼
-      EF Core Transaction
-             │
-             ▼
-┌───────────────────────────┐
-│ Commit                    │
-│                           │
-│ Entity                    │
-│ Outbox Message            │
-└────────────┬──────────────┘
-             │
-             ▼
- SaveChangesInterceptor
-             │
-             ▼
- Signal Background Worker
-             │
-             ▼
- Fetch Batch (SKIP LOCKED)
-             │
-             ▼
- Deserialize Event
-             │
-             ▼
- Dispatch Handlers
-             │
-             ▼
- Mark Processed
+                    HTTP Request
+                          │
+                          ▼
+                  Application Service
+                          │
+          ┌───────────────┴────────────────┐
+          │                                │
+          ▼                                ▼
+     Save Business Data            Enqueue Integration Event
+          │                                │
+          └───────────────┬────────────────┘
+                          ▼
+                 DbContext.SaveChanges()
+                          │
+                Single Database Transaction
+                          │
+          ┌───────────────┴────────────────┐
+          │                                │
+          ▼                                ▼
+      Business Tables                 Outbox Table
+                                              │
+                                              ▼
+                                  Background Delivery Service
+                                              │
+                                              ▼
+                                   Integration Event Dispatcher
+                                              │
+                                              ▼
+                                    Registered Event Handlers
+                                              │
+                                              ▼
+                                         Inbox Table
 ```
-
----
-
-# Packages
-
-The solution is split into three packages.
-
-| Package                        | Purpose                                                     |
-| ------------------------------ | ----------------------------------------------------------- |
-| **ModularOutbox.Abstractions** | Interfaces and base event types                             |
-| **ModularOutbox.Core**         | Background processor, dispatcher, decorators, configuration |
-| **ModularOutbox.PostgreSQL**   | EF Core integration and PostgreSQL implementation           |
 
 ---
 
 # Installation
 
+Install the required packages.
+
 ```bash
 dotnet add package ModularOutbox.Core
+dotnet add package ModularOutbox.EntityFrameworkCore
 dotnet add package ModularOutbox.PostgreSQL
 ```
 
@@ -92,15 +75,14 @@ dotnet add package ModularOutbox.PostgreSQL
 
 # Quick Start
 
-## 1. Configure EF Core
+## 1. Configure Entity Framework Core
 
 ```csharp
 builder.Services.AddDbContext<AppDbContext>((sp, options) =>
 {
     options
-        .UseNpgsql(connectionString)
-        .AddInterceptors(
-            sp.GetRequiredService<OutboxSaveChangesInterceptor>());
+        .UseNpgsql(builder.Configuration.GetConnectionString("Database"))
+        .UseModularOutbox(sp);
 });
 ```
 
@@ -113,38 +95,49 @@ builder.Services.AddModularOutbox(outbox =>
 {
     outbox.ConfigureOptions(options =>
     {
+        options.ConnectionString =
+            builder.Configuration.GetConnectionString("Database")!;
+
+        options.Schema = "messaging";
         options.BatchSize = 100;
-        options.PollingIntervalSeconds = 10;
-        options.MaxRetries = 3;
+
+        options.EnableDeliveryService = true;
+        options.EnableCleanupService = true;
     });
 
-    outbox.UsePostgreSqlStorage(connectionString);
-
-    outbox.RegisterModuleDbContext<AppDbContext>();
-
-    outbox.RegisterHandlersFromAssemblies(typeof(Program).Assembly)
-          .EnableResilienceDecorator();
+    outbox
+        .RegisterHandlersFromAssemblies(typeof(Program).Assembly)
+        .AddResilienceDecorators()
+        .UseEntityFrameworkCore()
+        .UsePostgreSql(
+            builder.Configuration.GetConnectionString("Database")!);
 });
 ```
 
 ---
 
-## 3. Add Outbox Tables
+## 3. Configure your DbContext
 
-Inside your DbContext:
+Apply the ModularOutbox entity configurations.
 
 ```csharp
-protected override void OnModelCreating(ModelBuilder modelBuilder)
+public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
+    : DbContext(options)
 {
-    modelBuilder.UseOutboxModel();
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
 
-    base.OnModelCreating(modelBuilder);
+        modelBuilder.ApplyModularOutboxConfigurations(this);
+    }
 }
 ```
 
 ---
 
 ## 4. Create an Integration Event
+
+Simply inherit from `IntegrationEvent`.
 
 ```csharp
 public sealed record UserRegisteredIntegrationEvent(
@@ -153,63 +146,63 @@ public sealed record UserRegisteredIntegrationEvent(
 ) : IntegrationEvent;
 ```
 
+### Optional: Stable Message Names
+
+To avoid breaking message contracts after refactoring, assign a logical message name.
+
+```csharp
+[OutboxMessageName("identity.user-registered.v1")]
+public sealed record UserRegisteredIntegrationEvent(
+    Guid UserId,
+    string Email
+) : IntegrationEvent;
+```
+
 ---
 
-## 5. Write Events
+## 5. Publish an Event
+
+Inject `IOutboxWriter` and enqueue the event before calling `SaveChangesAsync()`.
 
 ```csharp
 public sealed class RegisterUserHandler
 {
     public async Task Handle(
         RegisterUser command,
-        AppDbContext db,
-        IOutboxWriter<AppDbContext> outbox)
+        AppDbContext dbContext,
+        IOutboxWriter outboxWriter,
+        CancellationToken ct)
     {
-        var user = new User(...);
+        var user = new User(command.Email);
 
-        db.Users.Add(user);
+        dbContext.Users.Add(user);
 
-        outbox.Write(
+        outboxWriter.Enqueue(
             new UserRegisteredIntegrationEvent(
                 user.Id,
                 user.Email));
 
-        await db.SaveChangesAsync();
+        await dbContext.SaveChangesAsync(ct);
     }
 }
 ```
 
-Both the entity and the integration event are committed in the **same transaction**.
+> **Important**
+>
+> `SaveChangesAsync()` commits both your entity changes and the outbox message in the **same database transaction**.
+>
+> If the transaction fails, neither the entity nor the event is persisted.
 
 ---
 
-## 6. Consume Events
+## 6. Handle Events
 
-```csharp
-public sealed class UserRegisteredHandler
-    : IIntegrationEventHandler<UserRegisteredIntegrationEvent>
-{
-    private const string Consumer =
-        nameof(UserRegisteredHandler);
-
-    public async Task HandleAsync(
-        UserRegisteredIntegrationEvent integrationEvent,
-        CancellationToken ct)
-    {
-        // Business logic...
-    }
-}
-```
-
----
-
-# Inbox Pattern
-
-To make consumers idempotent:
+Implement `IIntegrationEventHandler<T>`.
 
 ```csharp
 public sealed class UserRegisteredHandler(
-    IInboxStore<AppDbContext> inbox)
+    IInboxStore inboxStore,
+    ILogger<UserRegisteredHandler> logger)
     : IIntegrationEventHandler<UserRegisteredIntegrationEvent>
 {
     private const string Consumer =
@@ -219,17 +212,19 @@ public sealed class UserRegisteredHandler(
         UserRegisteredIntegrationEvent integrationEvent,
         CancellationToken ct)
     {
-        if (await inbox.HasBeenProcessedAsync(
-                integrationEvent.Id,
-                Consumer,
-                ct))
+        if (await inboxStore.HasBeenProcessedAsync(
+            integrationEvent.Id,
+            Consumer,
+            ct))
         {
             return;
         }
 
-        // Execute business logic
+        logger.LogInformation(
+            "Sending welcome email to {Email}",
+            integrationEvent.Email);
 
-        await inbox.MarkAsProcessedAsync(
+        await inboxStore.MarkAsProcessedAsync(
             integrationEvent.Id,
             Consumer,
             ct);
@@ -237,126 +232,117 @@ public sealed class UserRegisteredHandler(
 }
 ```
 
----
-
-# How Processing Works
-
-Whenever `SaveChanges()` commits successfully:
-
-1. The Outbox message is stored in the same transaction.
-2. The interceptor signals the background processor.
-3. The processor immediately wakes up.
-4. A batch of messages is fetched.
-5. Events are deserialized.
-6. Matching handlers are executed.
-7. Successfully processed messages are marked as processed.
-
-If the wake-up signal is missed (for example after an application restart), the background service periodically polls the database to ensure no messages remain unprocessed.
+The `IInboxStore` ensures your handlers are **idempotent**, preventing duplicate processing when messages are retried.
 
 ---
 
-# Horizontal Scaling
+# Resilience
 
-Multiple application instances can safely process the same Outbox table.
+ModularOutbox integrates with **Microsoft.Extensions.Resilience / Polly**.
 
-Each worker executes:
+Register a resilience pipeline.
 
-```sql
-SELECT *
-FROM messaging.outbox_messages
-FOR UPDATE SKIP LOCKED
-LIMIT @BatchSize;
+```csharp
+builder.Services.AddResiliencePipeline(
+    "emails",
+    pipeline =>
+    {
+        pipeline.AddRetry(new RetryStrategyOptions
+        {
+            MaxRetryAttempts = 3
+        });
+    });
 ```
 
-This guarantees:
+Apply it to your handler.
 
-- No duplicate processing
-- No distributed locks
-- No leader election
-- Excellent scalability
+```csharp
+[ResilientHandler("emails")]
+public sealed class UserRegisteredHandler
+    : IIntegrationEventHandler<UserRegisteredIntegrationEvent>
+{
+}
+```
 
-Simply deploy multiple replicas behind a load balancer.
-
----
-
-# Retry & Dead Letter
-
-If a handler throws an exception:
-
-- Retry count increases
-- Polly retries the handler
-- Errors are stored
-- Messages exceeding `MaxRetries` become Dead Letter messages
-
-Dead Letter messages remain in the Outbox table for inspection.
+If no attribute is specified, the default pipeline registered by `AddResilienceDecorators()` is used.
 
 ---
 
 # Configuration
 
 ```csharp
-outbox.ConfigureOptions(options =>
+builder.Services.AddModularOutbox(outbox =>
 {
-    options.BatchSize = 100;
+    outbox.ConfigureOptions(options =>
+    {
+        options.ConnectionString = "...";
+        options.Schema = "messaging";
+        options.BatchSize = 100;
+        options.PollingInterval = TimeSpan.FromSeconds(10);
+        options.LockTimeout = TimeSpan.FromSeconds(15);
+        options.MaxRetries = 5;
+        options.CleanupAfter = TimeSpan.FromHours(24);
+        options.CleanupInterval = TimeSpan.FromHours(12);
 
-    options.PollingIntervalSeconds = 10;
-
-    options.MaxRetries = 3;
-
-    options.Schema = "messaging";
+        options.EnableDeliveryService = true;
+        options.EnableCleanupService = true;
+    });
 });
 ```
 
-| Option                 | Default   | Description                          |
-| ---------------------- | --------- | ------------------------------------ |
-| BatchSize              | 50        | Number of events processed per batch |
-| PollingIntervalSeconds | 10        | Fallback polling interval            |
-| MaxRetries             | 3         | Maximum processing attempts          |
-| Schema                 | messaging | Database schema                      |
+| Option | Default | Description |
+|---------|---------|-------------|
+| `ConnectionString` | Required | PostgreSQL connection string |
+| `Schema` | `messaging` | Database schema |
+| `BatchSize` | `100` | Number of messages processed per batch |
+| `PollingInterval` | `10 seconds` | Idle polling interval |
+| `LockTimeout` | `15 seconds` | Message lease duration |
+| `MaxRetries` | `5` | Maximum retry attempts |
+| `CleanupAfter` | `24 hours` | Message retention period |
+| `CleanupInterval` | `12 hours` | Cleanup execution interval |
+| `EnableDeliveryService` | `true` | Enables background delivery service |
+| `EnableCleanupService` | `true` | Enables cleanup service |
 
 ---
 
-# Project Structure
+# How It Works
 
-```text
-src/
- ├── ModularOutbox.Abstractions
- ├── ModularOutbox.Core
- └── ModularOutbox.PostgreSQL
+1. Your application modifies business data.
+2. Integration events are staged using `IOutboxWriter`.
+3. `SaveChangesAsync()` persists both business data and outbox messages in a single transaction.
+4. The background delivery service fetches pending messages.
+5. Messages are deserialized and dispatched.
+6. Registered handlers execute.
+7. `IInboxStore` records successful processing to guarantee idempotency.
+8. Successfully processed messages are cleaned up automatically.
 
-samples/
- └── ModularOutbox.Sample.Api
+---
 
-tests/
- ├── ModularOutbox.Core.Tests
- └── ModularOutbox.PostgreSQL.Tests
+# Sample
+
+```csharp
+app.MapPost(
+    "/users",
+    async (
+        CreateUserRequest request,
+        AppDbContext db,
+        IOutboxWriter outbox,
+        CancellationToken ct) =>
+    {
+        var user = new User(request.Email);
+
+        db.Users.Add(user);
+
+        outbox.Enqueue(
+            new UserRegisteredIntegrationEvent(
+                user.Id,
+                user.Email));
+
+        await db.SaveChangesAsync(ct);
+
+        return Results.Ok();
+    });
 ```
-
----
-
-# Testing
-
-Run all tests:
-
-```bash
-dotnet test
-```
-
-The PostgreSQL integration tests use:
-
-- Testcontainers
-- PostgreSQL
-- Respawn
-
-to validate real database behavior, concurrency, and locking.
-
----
-
-# Requirements
-
-- .NET 10
-- Entity Framework Core 10
-- PostgreSQL
 
 ---
 
@@ -364,28 +350,16 @@ to validate real database behavior, concurrency, and locking.
 
 - [x] Transactional Outbox
 - [x] Inbox Pattern
-- [x] Background Processor
-- [x] Automatic Wake-up Channel
-- [x] PostgreSQL `SKIP LOCKED`
-- [x] Polly Resilience
-- [x] Dead Letter Support
-- [x] Batch Processing
+- [x] PostgreSQL provider
+- [x] Entity Framework Core integration
+- [x] Polly resilience support
 - [ ] SQL Server provider
-- [ ] MySQL provider
-- [ ] Metrics
-- [ ] Custom serialization support
-- [ ] Distributed tracing
-
----
-
-# Contributing
-
-Contributions, issues, and feature requests are welcome.
-
-If you find a bug or have an idea for improvement, feel free to open an issue or submit a pull request.
+- [ ] MongoDB provider
+- [ ] Distributed transport integrations
+- [ ] Metrics and OpenTelemetry
 
 ---
 
 # License
 
-This project is licensed under the MIT License.
+Licensed under the MIT License.
