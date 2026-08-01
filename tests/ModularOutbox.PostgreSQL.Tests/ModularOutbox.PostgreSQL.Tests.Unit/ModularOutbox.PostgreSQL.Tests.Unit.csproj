@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -11,10 +11,7 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="xunit.v3" />
     <PackageReference Include="xunit.runner.visualstudio" />
-    <PackageReference Include="Testcontainers.XunitV3" />
-    <PackageReference Include="Testcontainers.PostgreSql" />
     <PackageReference Include="Shouldly" />
-    <PackageReference Include="Respawn" />
   </ItemGroup>
 
   <ItemGroup>
@@ -22,6 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\ModularOutbox.PostgreSQL\ModularOutbox.PostgreSQL.csproj" />
+    <ProjectReference Include="..\..\..\src\ModularOutbox.Core\ModularOutbox.Core.csproj" />
+    <ProjectReference Include="..\..\..\src\ModularOutbox.PostgreSQL\ModularOutbox.PostgreSQL.csproj" />
   </ItemGroup>
 </Project>

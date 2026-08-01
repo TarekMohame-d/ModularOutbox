@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using ModularOutbox.EntityFrameworkCore.DependencyInjection;
 using ModularOutbox.PostgreSQL.DependencyInjection;
 
 namespace ModularOutbox.Sample.Api.Database;
@@ -27,6 +28,6 @@ public sealed class SampleDbContext(DbContextOptions<SampleDbContext> options) :
         });
 
         // Apply ModularOutbox Entity Configurations for PostgreSQL
-        modelBuilder.UseOutboxModel();
+        modelBuilder.ApplyModularOutboxConfigurations(this);
     }
 }

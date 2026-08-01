@@ -1,11 +1,12 @@
 using ModularOutbox.Abstractions;
-using ModularOutbox.Sample.Api.Database;
+using ModularOutbox.Abstractions.Attributes;
 using ModularOutbox.Sample.Api.Modules.Identity;
 
 namespace ModularOutbox.Sample.Api.Modules.Notifications;
 
+[ResilientHandler("test")]
 public sealed class UserRegisteredIntegrationEventHandler(
-    IInboxStore<SampleDbContext> inboxStore,
+    IInboxStore inboxStore,
     ILogger<UserRegisteredIntegrationEventHandler> logger
 ) : IIntegrationEventHandler<UserRegisteredIntegrationEvent>
 {

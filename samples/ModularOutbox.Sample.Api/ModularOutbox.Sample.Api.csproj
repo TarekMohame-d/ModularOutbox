@@ -1,11 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\ModularOutbox.Abstractions\ModularOutbox.Abstractions.csproj" />
     <ProjectReference Include="..\..\src\ModularOutbox.Core\ModularOutbox.Core.csproj" />
     <ProjectReference Include="..\..\src\ModularOutbox.PostgreSQL\ModularOutbox.PostgreSQL.csproj" />
+    <ProjectReference Include="..\..\src\ModularOutbox.EntityFrameworkCore\ModularOutbox.EntityFrameworkCore.csproj" />
   </ItemGroup>
 </Project>
