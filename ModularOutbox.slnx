@@ -5,10 +5,14 @@
   <Folder Name="/src/">
     <Project Path="src/ModularOutbox.Abstractions/ModularOutbox.Abstractions.csproj" />
     <Project Path="src/ModularOutbox.Core/ModularOutbox.Core.csproj" />
+    <Project Path="src/ModularOutbox.EntityFrameworkCore/ModularOutbox.EntityFrameworkCore.csproj" />
     <Project Path="src/ModularOutbox.PostgreSQL/ModularOutbox.PostgreSQL.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/ModularOutbox.Core.Tests/ModularOutbox.Core.Tests.csproj" />
-    <Project Path="tests/ModularOutbox.PostgreSQL.Tests/ModularOutbox.PostgreSQL.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tests/ModularOutbox.PostgreSQL.Tests/">
+    <Project Path="tests/ModularOutbox.PostgreSQL.Tests/ModularOutbox.PostgreSQL.Tests.Integration/ModularOutbox.PostgreSQL.Tests.Integration.csproj" />
+    <Project Path="tests/ModularOutbox.PostgreSQL.Tests/ModularOutbox.PostgreSQL.Tests.Unit/ModularOutbox.PostgreSQL.Tests.Unit.csproj" />
   </Folder>
 </Solution>

@@ -1,0 +1,11 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ModularOutbox.Abstractions\ModularOutbox.Abstractions.csproj" />
+    <ProjectReference Include="..\ModularOutbox.Core\ModularOutbox.Core.csproj" />
+  </ItemGroup>
+</Project>
