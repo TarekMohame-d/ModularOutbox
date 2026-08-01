@@ -1,10 +1,12 @@
 using Microsoft.EntityFrameworkCore;
 using ModularOutbox.Abstractions;
 using ModularOutbox.Core.DependencyInjection;
+using ModularOutbox.EntityFrameworkCore.DependencyInjection;
 using ModularOutbox.PostgreSQL.DependencyInjection;
-using ModularOutbox.PostgreSQL.Interceptors;
 using ModularOutbox.Sample.Api.Database;
 using ModularOutbox.Sample.Api.Modules.Identity;
+using Polly;
+using Polly.Retry;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,28 +18,38 @@ var connectionString =
 builder.Services.AddDbContext<SampleDbContext>(
     (sp, options) =>
     {
-        options
-            .UseNpgsql(connectionString)
-            .AddInterceptors(sp.GetRequiredService<OutboxSaveChangesInterceptor>());
+        options.UseNpgsql(connectionString).UseModularOutbox(sp);
     }
 );
+
+builder.Services.AddResiliencePipeline("test", pipelineBuilder =>
+{
+    pipelineBuilder.AddRetry(new RetryStrategyOptions
+    {
+        MaxRetryAttempts = 2,
+        Delay = TimeSpan.FromMilliseconds(50),
+        BackoffType = DelayBackoffType.Constant
+    });
+});
 
 // 2. Configure ModularOutbox Infrastructure
 builder.Services.AddModularOutbox(outbox =>
 {
     outbox.ConfigureOptions(options =>
     {
-        options.BatchSize = 100;
-        options.PollingIntervalSeconds = 10;
+        options.BatchSize = 20;
+        options.Schema = "messaging";
+        options.PollingInterval = TimeSpan.FromSeconds(10);
+        options.EnableDeliveryService = true;
+        options.EnableCleanupService = true;
         options.MaxRetries = 3;
     });
 
-    // Storage Engine and DbContext Bindings
-    outbox.UsePostgreSqlStorage(connectionString);
-    outbox.RegisterModuleDbContext<SampleDbContext>();
-
-    // Register Handlers from current assembly & add Polly Resilience
-    outbox.RegisterHandlersFromAssemblies(typeof(Program).Assembly).EnableResilienceDecorator();
+    outbox
+        .RegisterHandlersFromAssemblies(typeof(Program).Assembly)
+        .AddResilienceDecorators()
+        .UseEntityFrameworkCore()
+        .UsePostgreSql(connectionString);
 });
 
 var app = builder.Build();
@@ -55,7 +67,7 @@ app.MapPost(
     async (
         RegisterUserRequest request,
         SampleDbContext dbContext,
-        IOutboxWriter<SampleDbContext> outboxWriter,
+        IOutboxWriter outboxWriter,
         CancellationToken ct
     ) =>
     {
@@ -71,7 +83,7 @@ app.MapPost(
 
         // Stage Integration Event to Outbox
         var @event = new UserRegisteredIntegrationEvent(user.Id, user.Email);
-        outboxWriter.Write(@event);
+        outboxWriter.Enqueue(@event);
 
         // Atomic Save: User + Outbox Message committed together
         await dbContext.SaveChangesAsync(ct);

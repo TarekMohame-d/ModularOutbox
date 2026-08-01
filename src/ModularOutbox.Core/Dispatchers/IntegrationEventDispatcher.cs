@@ -1,33 +1,52 @@
+using System.Collections.Concurrent;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using ModularOutbox.Abstractions;
 
 namespace ModularOutbox.Core.Dispatchers;
 
-public sealed class IntegrationEventDispatcher(
-    IServiceProvider serviceProvider,
-    ILogger<IntegrationEventDispatcher> logger) : IIntegrationEventDispatcher
+internal sealed class IntegrationEventDispatcher(IServiceProvider serviceProvider)
+    : IIntegrationEventDispatcher
 {
-    public async Task DispatchAsync(IIntegrationEvent integrationEvent, CancellationToken ct = default)
+    private static readonly ConcurrentDictionary<
+        Type,
+        Func<IServiceProvider, IIntegrationEvent, CancellationToken, Task>
+    > InvokerCache = new();
+
+    public Task DispatchAsync<TEvent>(TEvent @event, CancellationToken cancellationToken = default)
+        where TEvent : IIntegrationEvent
     {
-        var eventType = integrationEvent.GetType();
-        var handlerType = typeof(IIntegrationEventHandler<>).MakeGenericType(eventType);
+        ArgumentNullException.ThrowIfNull(@event);
 
-        var handlers = serviceProvider.GetServices(handlerType);
+        Type runtimeType = @event.GetType();
 
-        foreach (var handler in handlers)
+        var invoker = InvokerCache.GetOrAdd(runtimeType, CreateDispatchDelegate);
+
+        return invoker(serviceProvider, @event, cancellationToken);
+    }
+
+    private static Func<IServiceProvider, IIntegrationEvent, CancellationToken, Task> CreateDispatchDelegate(
+        Type eventType
+    )
+    {
+        Type handlerInterfaceType = typeof(IIntegrationEventHandler<>).MakeGenericType(eventType);
+
+        return async (sp, evt, ct) =>
         {
-            if (handler is null) continue;
+            await using AsyncServiceScope scope = sp.CreateAsyncScope();
 
-            var method = handlerType.GetMethod(nameof(IIntegrationEventHandler<>.HandleAsync));
-            if (method is null)
+            // Resolve handlers from the scoped provider
+            IEnumerable<object?> handlers = scope.ServiceProvider.GetServices(handlerInterfaceType);
+
+            foreach (object? handler in handlers)
             {
-                logger.LogError("Method HandleAsync not found on handler {HandlerType}", handler.GetType().Name);
-                continue;
-            }
+                if (handler is null)
+                    continue;
 
-            var task = (Task)method.Invoke(handler, [integrationEvent, ct])!;
-            await task;
-        }
+                var method = handlerInterfaceType.GetMethod(nameof(IIntegrationEventHandler<>.HandleAsync))!;
+                var task = (Task)method.Invoke(handler, [evt, ct])!;
+
+                await task;
+            }
+        };
     }
 }

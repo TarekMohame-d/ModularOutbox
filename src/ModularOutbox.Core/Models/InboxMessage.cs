@@ -1,17 +1,19 @@
 namespace ModularOutbox.Core.Models;
 
-public sealed class InboxMessage
+internal sealed class InboxMessage
 {
-    public Guid Id { get; private set; }
-    public string ConsumerName { get; private set; } = default!;
-    public DateTimeOffset ProcessedAtUtc { get; private set; }
+    /// <summary>
+    /// Unique message identifier for idempotency and cancellation.
+    /// </summary>
+    public Guid MessageId { get; set; }
 
-    private InboxMessage() { }
+    /// <summary>
+    /// Name of the consumer that processed the message.
+    /// </summary>
+    public string ConsumerName { get; set; } = default!;
 
-    public InboxMessage(Guid id, string consumerName)
-    {
-        Id = id;
-        ConsumerName = consumerName;
-        ProcessedAtUtc = DateTimeOffset.UtcNow;
-    }
+    /// <summary>
+    /// When the message was processed.
+    /// </summary>
+    public DateTimeOffset ProcessedAtUtc { get; set; }
 }

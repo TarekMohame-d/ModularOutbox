@@ -1,17 +1,21 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
-    <PackageReference Include="Microsoft.EntityFrameworkCore" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
-    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="Npgsql" />
+    <PackageReference Include="Npgsql.DependencyInjection" />
+    <PackageReference Include="Dapper" />
+    <PackageReference Include="dbup-postgresql" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\ModularOutbox.Core\ModularOutbox.Core.csproj" />
-    <ProjectReference Include="..\ModularOutbox.Abstractions\ModularOutbox.Abstractions.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="ModularOutbox.Core.Tests" />
-    <InternalsVisibleTo Include="ModularOutbox.PostgreSQL.Tests" />
+    <InternalsVisibleTo Include="ModularOutbox.PostgreSQL.Tests.Unit" />
+    <InternalsVisibleTo Include="ModularOutbox.PostgreSQL.Tests.Integration" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Scripts\**\*.sql" />
   </ItemGroup>
 </Project>
