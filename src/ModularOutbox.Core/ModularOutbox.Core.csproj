@@ -16,5 +16,7 @@
     <InternalsVisibleTo Include="ModularOutbox.EntityFrameworkCore" />
     <InternalsVisibleTo Include="ModularOutbox.PostgreSQL" />
     <InternalsVisibleTo Include="ModularOutbox.Core.Tests" />
+    <InternalsVisibleTo Include="ModularOutbox.EntityFrameworkCore.Tests" />
+    <InternalsVisibleTo Include="ModularOutbox.PostgreSQL.Tests.Integration" />
   </ItemGroup>
 </Project>

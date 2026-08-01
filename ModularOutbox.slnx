@@ -10,6 +10,7 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/ModularOutbox.Core.Tests/ModularOutbox.Core.Tests.csproj" />
+    <Project Path="tests/ModularOutbox.EntityFrameworkCore.Tests/ModularOutbox.EntityFrameworkCore.Tests.csproj" />
   </Folder>
   <Folder Name="/tests/ModularOutbox.PostgreSQL.Tests/">
     <Project Path="tests/ModularOutbox.PostgreSQL.Tests/ModularOutbox.PostgreSQL.Tests.Integration/ModularOutbox.PostgreSQL.Tests.Integration.csproj" />

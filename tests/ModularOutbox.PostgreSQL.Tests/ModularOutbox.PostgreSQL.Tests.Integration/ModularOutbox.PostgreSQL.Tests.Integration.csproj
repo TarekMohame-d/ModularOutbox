@@ -15,6 +15,7 @@
     <PackageReference Include="Testcontainers.XunitV3" />
     <PackageReference Include="Testcontainers.PostgreSql" />
     <PackageReference Include="Respawn" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
   </ItemGroup>
 
   <ItemGroup>
@@ -24,5 +25,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\src\ModularOutbox.Core\ModularOutbox.Core.csproj" />
     <ProjectReference Include="..\..\..\src\ModularOutbox.PostgreSQL\ModularOutbox.PostgreSQL.csproj" />
+    <ProjectReference Include="..\..\..\src\ModularOutbox.Abstractions\ModularOutbox.Abstractions.csproj" />
+    <ProjectReference Include="..\..\..\src\ModularOutbox.EntityFrameworkCore\ModularOutbox.EntityFrameworkCore.csproj" />
   </ItemGroup>
 </Project>

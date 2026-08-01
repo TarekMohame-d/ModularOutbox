@@ -12,8 +12,7 @@
     <PackageReference Include="xunit.v3" />
     <PackageReference Include="xunit.runner.visualstudio" />
     <PackageReference Include="Shouldly" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
-    <PackageReference Include="NSubstitute" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" />
   </ItemGroup>
 
   <ItemGroup>
@@ -21,6 +20,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\ModularOutbox.Abstractions\ModularOutbox.Abstractions.csproj" />
+    <ProjectReference Include="..\..\src\ModularOutbox.EntityFrameworkCore\ModularOutbox.EntityFrameworkCore.csproj" />
     <ProjectReference Include="..\..\src\ModularOutbox.Core\ModularOutbox.Core.csproj" />
   </ItemGroup>
 </Project>
