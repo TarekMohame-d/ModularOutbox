@@ -1,38 +1,52 @@
 namespace ModularOutbox.Core.Models;
 
-public sealed class OutboxMessage
+/// <summary>
+/// Represents a message in the transactional outbox.
+/// </summary>
+internal sealed class OutboxMessage
 {
-    public Guid Id { get; private set; }
-    public string Type { get; private set; } = default!;
-    public string Payload { get; private set; } = default!;
-    public DateTimeOffset OccurredAtUtc { get; private set; }
-    public DateTimeOffset? ProcessedAtUtc { get; private set; }
-    public string? Error { get; private set; }
-    public int RetryCount { get; private set; }
-    public bool DeadLetter { get; private set; }
+    /// <summary>
+    /// Auto-increment PK for FIFO ordering.
+    /// </summary>
+    public long Id { get; set; }
 
-    private OutboxMessage() { }
+    /// <summary>
+    /// Unique message identifier for idempotency and cancellation.
+    /// </summary>
+    public Guid MessageId { get; set; }
 
-    public OutboxMessage(Guid id, string type, string payload, DateTimeOffset occurredAtUtc)
-    {
-        Id = id;
-        Type = type;
-        Payload = payload;
-        OccurredAtUtc = occurredAtUtc;
-    }
+    /// <summary>
+    /// Assembly-qualified type name for deserialization.
+    /// </summary>
+    public string MessageType { get; set; } = null!;
 
-    public void MarkProcessed()
-    {
-        ProcessedAtUtc = DateTimeOffset.UtcNow;
-        Error = null;
-    }
+    /// <summary>
+    /// JSON-serialized message payload.
+    /// </summary>
+    public string Payload { get; set; } = null!;
 
-    public void HandleFailure(string errorMessage, int maxRetries)
-    {
-        RetryCount++;
-        Error = errorMessage;
+    /// <summary>
+    /// When the message was enqueued.
+    /// </summary>
+    public DateTimeOffset CreatedAtUtc { get; set; }
 
-        if (RetryCount >= maxRetries)
-            DeadLetter = true;
-    }
+    /// <summary>
+    /// When the message was processed.
+    /// </summary>
+    public DateTimeOffset? ProcessedAtUtc { get; set; }
+
+    /// <summary>
+    /// When the message was locked.
+    /// </summary>
+    public DateTimeOffset? LockedUntilUtc { get; set; }
+
+    /// <summary>
+    /// Number of processing attempts.
+    /// </summary>
+    public int RetryCount { get; set; }
+
+    /// <summary>
+    /// Last error message (for debugging).
+    /// </summary>
+    public string? LastError { get; set; }
 }

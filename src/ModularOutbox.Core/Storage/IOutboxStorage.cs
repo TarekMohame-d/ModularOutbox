@@ -2,11 +2,13 @@ using ModularOutbox.Core.Models;
 
 namespace ModularOutbox.Core.Storage;
 
-public interface IOutboxStorage
+internal interface IOutboxStorage
 {
     Task<IReadOnlyList<OutboxMessage>> FetchUnprocessedBatchAsync(
         int batchSize,
         CancellationToken ct = default
     );
-    Task SaveChangesAsync(CancellationToken ct = default);
+    Task MarkCompletedAsync(long id, CancellationToken ct);
+    Task MarkFailedAsync(long id, string error, CancellationToken ct);
+    Task CleanupOldMessagesAsync(CancellationToken ct);
 }

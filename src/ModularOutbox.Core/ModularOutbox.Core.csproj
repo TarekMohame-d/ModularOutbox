@@ -11,4 +11,10 @@
   <ItemGroup>
     <ProjectReference Include="..\ModularOutbox.Abstractions\ModularOutbox.Abstractions.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="ModularOutbox.EntityFrameworkCore" />
+    <InternalsVisibleTo Include="ModularOutbox.PostgreSQL" />
+    <InternalsVisibleTo Include="ModularOutbox.Core.Tests" />
+  </ItemGroup>
 </Project>
