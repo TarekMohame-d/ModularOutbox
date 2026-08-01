@@ -15,7 +15,7 @@
     <PackageTags>outbox;transactional-outbox;postgresql;efcore;dotnet;modular-monolith</PackageTags>
     <Version>1.0.0-preview1</Version>
 
-    <!-- README -->
+    <!-- README Metadata -->
     <PackageReadmeFile>README.md</PackageReadmeFile>
 
     <!-- Source Link & Debugging -->
@@ -25,12 +25,12 @@
     <IncludeSymbols>true</IncludeSymbols>
   </PropertyGroup>
 
-  <!-- Prevent test & sample projects from producing NuGet packages -->
-  <PropertyGroup Condition="$(MSBuildProjectFullPath.Contains('/tests/')) Or $(MSBuildProjectFullPath.Contains('/samples/'))">
+  <!-- Prevent test & sample projects from producing NuGet packages (Cross-Platform) -->
+  <PropertyGroup Condition="$(MSBuildProjectFullPath.Replace('\', '/')).Contains('/tests/') Or $(MSBuildProjectFullPath.Replace('\', '/')).Contains('/samples/')">
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
-  <PropertyGroup Condition="!$(MSBuildProjectFullPath.Contains('/tests/')) And !$(MSBuildProjectFullPath.Contains('/samples/'))">
+  <PropertyGroup Condition="!$(MSBuildProjectFullPath.Replace('\', '/')).Contains('/tests/') And !$(MSBuildProjectFullPath.Replace('\', '/')).Contains('/samples/')">
     <IsPackable>true</IsPackable>
   </PropertyGroup>
 </Project>
