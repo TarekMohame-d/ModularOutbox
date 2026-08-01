@@ -15,6 +15,9 @@
     <PackageTags>outbox;transactional-outbox;postgresql;efcore;dotnet;modular-monolith</PackageTags>
     <Version>1.0.0-preview1</Version>
 
+    <!-- README -->
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+
     <!-- Source Link & Debugging -->
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
