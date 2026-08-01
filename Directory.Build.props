@@ -23,14 +23,13 @@
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <IncludeSymbols>true</IncludeSymbols>
-  </PropertyGroup>
 
-  <!-- Prevent test & sample projects from producing NuGet packages (Cross-Platform) -->
-  <PropertyGroup Condition="$(MSBuildProjectFullPath.Replace('\', '/')).Contains('/tests/') Or $(MSBuildProjectFullPath.Replace('\', '/')).Contains('/samples/')">
-    <IsPackable>false</IsPackable>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="!$(MSBuildProjectFullPath.Replace('\', '/')).Contains('/tests/') And !$(MSBuildProjectFullPath.Replace('\', '/')).Contains('/samples/')">
+    <!-- Default all projects to packable -->
     <IsPackable>true</IsPackable>
+  </PropertyGroup>
+
+  <!-- Disable packing for test & sample projects across Windows, Linux, & macOS -->
+  <PropertyGroup Condition="$(MSBuildProjectFullPath.Replace('\', '/').Contains('/tests/')) Or $(MSBuildProjectFullPath.Replace('\', '/').Contains('/samples/'))">
+    <IsPackable>false</IsPackable>
   </PropertyGroup>
 </Project>
