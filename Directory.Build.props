@@ -5,6 +5,11 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>latest</LangVersion>
 
+    <!-- XML Documentation & IntelliSense Packaging -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- Suppresses CS1591 warnings for missing XML comments -->
+    <NoWarn>$(NoWarn);1591</NoWarn>
+
     <!-- Package Metadata -->
     <Authors>Tarek Mohamed</Authors>
     <Company>ModularOutbox</Company>
