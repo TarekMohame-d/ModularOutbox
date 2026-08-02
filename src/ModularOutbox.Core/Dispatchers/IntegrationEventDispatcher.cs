@@ -4,49 +4,55 @@ using ModularOutbox.Abstractions;
 
 namespace ModularOutbox.Core.Dispatchers;
 
-internal sealed class IntegrationEventDispatcher(IServiceProvider serviceProvider)
-    : IIntegrationEventDispatcher
+public sealed class IntegrationEventDispatcher(IServiceProvider serviceProvider) : IIntegrationEventDispatcher
 {
-    private static readonly ConcurrentDictionary<
-        Type,
-        Func<IServiceProvider, IIntegrationEvent, CancellationToken, Task>
-    > InvokerCache = new();
+    private static readonly ConcurrentDictionary<Type, IntegrationEventHandlerWrapper> HandlerWrappersCache =
+        new();
 
     public Task DispatchAsync<TEvent>(TEvent @event, CancellationToken cancellationToken = default)
         where TEvent : IIntegrationEvent
     {
         ArgumentNullException.ThrowIfNull(@event);
 
-        Type runtimeType = @event.GetType();
+        Type runtimeEventType = @event.GetType();
 
-        var invoker = InvokerCache.GetOrAdd(runtimeType, CreateDispatchDelegate);
+        IntegrationEventHandlerWrapper wrapper = HandlerWrappersCache.GetOrAdd(
+            runtimeEventType,
+            static type =>
+                (IntegrationEventHandlerWrapper)
+                    Activator.CreateInstance(
+                        typeof(IntegrationEventHandlerWrapperImpl<>).MakeGenericType(type)
+                    )!
+        );
 
-        return invoker(serviceProvider, @event, cancellationToken);
+        return wrapper.HandleAsync(@event, serviceProvider, cancellationToken);
     }
+}
 
-    private static Func<IServiceProvider, IIntegrationEvent, CancellationToken, Task> CreateDispatchDelegate(
-        Type eventType
+internal abstract class IntegrationEventHandlerWrapper
+{
+    public abstract Task HandleAsync(
+        IIntegrationEvent @event,
+        IServiceProvider serviceProvider,
+        CancellationToken cancellationToken
+    );
+}
+
+internal sealed class IntegrationEventHandlerWrapperImpl<TEvent> : IntegrationEventHandlerWrapper
+    where TEvent : class, IIntegrationEvent
+{
+    public override async Task HandleAsync(
+        IIntegrationEvent @event,
+        IServiceProvider serviceProvider,
+        CancellationToken cancellationToken
     )
     {
-        Type handlerInterfaceType = typeof(IIntegrationEventHandler<>).MakeGenericType(eventType);
+        var handlers = serviceProvider.GetServices<IIntegrationEventHandler<TEvent>>();
+        var typedEvent = (TEvent)@event;
 
-        return async (sp, evt, ct) =>
+        foreach (var handler in handlers)
         {
-            await using AsyncServiceScope scope = sp.CreateAsyncScope();
-
-            // Resolve handlers from the scoped provider
-            IEnumerable<object?> handlers = scope.ServiceProvider.GetServices(handlerInterfaceType);
-
-            foreach (object? handler in handlers)
-            {
-                if (handler is null)
-                    continue;
-
-                var method = handlerInterfaceType.GetMethod(nameof(IIntegrationEventHandler<>.HandleAsync))!;
-                var task = (Task)method.Invoke(handler, [evt, ct])!;
-
-                await task;
-            }
-        };
+            await handler.HandleAsync(typedEvent, cancellationToken);
+        }
     }
 }

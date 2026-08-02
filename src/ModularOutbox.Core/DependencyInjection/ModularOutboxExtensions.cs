@@ -115,7 +115,7 @@ public static class ModularOutboxExtensions
         builder.OptionsConfigurer?.Invoke(options);
 
         // Core Messaging & Dispatcher
-        services.TryAddTransient<IIntegrationEventDispatcher, IntegrationEventDispatcher>();
+        services.AddScoped<IIntegrationEventDispatcher, IntegrationEventDispatcher>();
         services.AddScoped<OutboxMessageContext>();
         services.AddScoped<IOutboxWriter, OutboxWriter>();
         services.AddScoped<IInboxStore, InboxStore>();
